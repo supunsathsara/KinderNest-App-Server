@@ -7,6 +7,7 @@ const { dbConnect, disconnect } = require('./lib/db')
 const ClassModel = require('./schema/ClassModel')
 const paypal = require('paypal-rest-sdk');
 const PaymentModel = require('./schema/PaymentModel')
+const ProgressModel = require('./schema/ProgressModel')
 
 const app = express();
 app.use(bodyParser.json());
@@ -19,7 +20,6 @@ paypal.configure({
     client_id: process.env.PAYPAL_CLIENT_ID,
     client_secret: process.env.PAYPAL_CLIENT_SECERET
 });
-
 
 app.get('/', (req, res) => {
     res.json({ greeting: 'hello World' });
@@ -62,7 +62,6 @@ app.post('/classes', async (req, res) => {
 
 })
 
-
 app.get('/all-classes', async (req, res) => {
     try {
         await dbConnect();
@@ -97,7 +96,6 @@ app.get('/classes', async (req, res) => {
         res.json({ message: "error" });
     }
 });
-
 
 app.get('/classes/:className', async (req, res) => {
     try {
@@ -223,36 +221,113 @@ app.get("/cancel", (req, res) => {
     res.json({ message: "cancel" });
 });
 
-app.get("/checkpay/:payerid", async(req, res) => {
+app.get("/checkpay/:payerid", async (req, res) => {
     try {
-        
-    
-    const payerId = req.params.payerid;
-    const month = moment().format('MMMM')
 
-    await dbConnect();
-    
 
-    //check if there is a record matching for month payerId and  paymentState is approved
-    const data = await PaymentModel.findOne(
-        {
-            payerId,
-            month,
-            paymentState: "approved"
+        const payerId = req.params.payerid;
+        const month = moment().format('MMMM')
+
+        await dbConnect();
+
+
+        //check if there is a record matching for month payerId and  paymentState is approved
+        const data = await PaymentModel.findOne(
+            {
+                payerId,
+                month,
+                paymentState: "approved"
+            }
+        );
+
+        if (data) {
+            res.json({ message: "success", data });
         }
-    );
-
-    if(data){
-        res.json({message: "success", data});
+        else {
+            res.json({ message: "not paid yet" });
+        }
+    } catch (error) {
+        console.log(error)
+        res.json({ message: "error" });
     }
-    else{
-        res.json({message: "not paid yet"});
-    }
-} catch (error) {
-    console.log(error)
-    res.json({ message: "error" });       
-}
 })
+
+app.post('/progress', async (req, res) => {
+    try {
+        // Extract student email and progress data from request body
+        const { student, subjects, remark } = req.body;
+
+        // Calculate current month using Moment.js
+        const currentMonth = moment().format('MMMM');
+        await dbConnect();
+
+        // Check if there is a record with the student email and current month
+        let progressRecord = await ProgressModel.findOne({ student, month: currentMonth });
+
+        if (progressRecord) {
+            // If record exists, update it
+            progressRecord.subjects = subjects;
+            progressRecord.remark = remark;
+            await progressRecord.save();
+            res.status(200).json({ message: 'Progress record updated successfully' });
+        } else {
+            // If record doesn't exist, create a new one
+            progressRecord = new ProgressModel({
+                student,
+                subjects,
+                remark,
+                month: currentMonth,
+            });
+            await progressRecord.save();
+            res.status(201).json({ message: 'Progress record created successfully' });
+        }
+
+    } catch (error) {
+        console.error('Error handling progress:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/progress', async (req, res) => {
+    try {
+        await dbConnect();
+        // Fetch all progress records from the database
+        const allProgressRecords = await ProgressModel.find();
+        res.status(200).json(allProgressRecords);
+    } catch (error) {
+        console.error('Error fetching progress records:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/progress/:studentEmail', async (req, res) => {
+    try {
+        const studentEmail = req.params.studentEmail;
+        await dbConnect();
+
+        // Fetch latest progress record for the student email
+        const studentProgressRecord = await ProgressModel.findOne({ student: studentEmail }).sort({ created: -1 });
+        
+        res.status(200).json(studentProgressRecord);
+    } catch (error) {
+        console.error('Error fetching progress records:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/progress/:studentEmail/recent', async (req, res) => {
+    try {
+        const studentEmail = req.params.studentEmail;
+        await dbConnect();
+
+        // Fetch latest 5 progress record for the student email
+        const studentProgressRecord = await ProgressModel.find({ student: studentEmail }).sort({ created: -1 }).limit(5);  
+        res.status(200).json(studentProgressRecord);
+    } catch (error) {
+        console.error('Error fetching progress records:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);

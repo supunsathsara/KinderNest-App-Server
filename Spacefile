@@ -1,0 +1,23 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+micros:
+  - name: backend
+    src: ./
+    engine: nodejs16
+    primary: true
+    public_routes:
+      - "/*"
+    presets:
+      env:
+        - name: MONGO_URI
+          default: "MONGO_URI"
+        - name: PAYPAL_CLIENT_ID
+          default: "PAYPAL_CLIENT_ID"
+        - name: PAYPAL_CLIENT_SECERET
+          default: "PAYPAL_CLIENT_SECERET"
+        - name: EMAIL_ADDRESS
+          default: "EMAIL_ADDRESS"
+        - name: EMAIL_PASSWORD
+          default: "EMAIL_PASSWORD"
+        - name: API_URL
+          default: "API_URL"

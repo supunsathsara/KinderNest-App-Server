@@ -8,6 +8,7 @@ const ClassModel = require('./schema/ClassModel')
 const paypal = require('paypal-rest-sdk');
 const PaymentModel = require('./schema/PaymentModel')
 const ProgressModel = require('./schema/ProgressModel')
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(bodyParser.json());
@@ -20,6 +21,20 @@ paypal.configure({
     client_id: process.env.PAYPAL_CLIENT_ID,
     client_secret: process.env.PAYPAL_CLIENT_SECERET
 });
+
+// Replace these with your actual email and password
+const gmailEmail = process.env.EMAIL_ADDRESS;
+const gmailPassword = process.env.EMAIL_PASSWORD;
+
+// Create a transporter object using the default SMTP transport
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: gmailEmail,
+    pass: gmailPassword,
+  },
+});
+
 
 app.get('/', (req, res) => {
     res.json({ greeting: 'hello World' });
@@ -328,6 +343,29 @@ app.get('/progress/:studentEmail/recent', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+app.post('/mailTeacher', (req, res) => {
+    const { to, replyTo, text } = req.body;
+  
+    const mailOptions = {
+      from: `"Kinder Nest" <${gmailEmail}>`, 
+      to: to, 
+      subject: 'Message from KinderNest', 
+      text: text, 
+      replyTo: replyTo, 
+    };
+  
+    // Send mail with defined transport object
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        res.status(500).send('Error sending email');
+      } else {
+        console.log('Message sent: %s', info.messageId);
+        res.status(200).send('Email sent successfully');
+      }
+    });
+  });
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);

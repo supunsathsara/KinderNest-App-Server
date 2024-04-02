@@ -10,6 +10,7 @@ const PaymentModel = require('./schema/PaymentModel')
 const ProgressModel = require('./schema/ProgressModel')
 const ScheduleEntry = require('./schema/ScheduleEntry');
 const nodemailer = require('nodemailer');
+const emailjs = require('@emailjs/nodejs');
 
 const app = express();
 app.use(bodyParser.json());
@@ -348,25 +349,56 @@ app.get('/progress/:studentEmail/recent', async (req, res) => {
 app.post('/mailTeacher', (req, res) => {
     const { to, replyTo, text } = req.body;
 
-    const mailOptions = {
-        from: `"Kinder Nest" <${gmailEmail}>`,
-        to: to,
-        subject: 'Message from KinderNest',
-        text: text,
-        replyTo: replyTo,
-    };
-
-    // Send mail with defined transport object
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log(error);
-            res.status(500).send('Error sending email');
-        } else {
-            console.log('Message sent: %s', info.messageId);
-            res.status(200).send('Email sent successfully');
-        }
-    });
+    emailjs
+        .send("service_xbb1f1n", "template_xp38nz9", {
+            from_name: "Kinder Nest",
+            to_name: to,
+            message: text,
+            reply_to: replyTo,
+            to_email: to,
+        },
+        {
+            publicKey: 'CEO-tcyEEmdmKfxKK',
+            privateKey: process.env.EMAILJS_PRIVATE_KEY
+        })
+        .then(
+            function (response) {
+                console.log('SUCCESS!', response.status, response.text);
+                res.status(200).send('Email sent successfully');
+            },
+            function (err) {
+                console.log('FAILED...', err);
+                res.status(500).send('Error sending email');
+            },
+        );
 });
+
+app.post('/contactus', (req, res) => {
+    const { name, email, message } = req.body;
+
+    emailjs
+        .send("service_xbb1f1n", "template_xp38nz9", {
+            from_name: name,
+            to_name:"Kinder Nest",
+            message: message,
+            reply_to: email,
+            to_email: "kindernestm@gmail.com",
+        },
+        {
+            publicKey: 'CEO-tcyEEmdmKfxKK',
+            privateKey: process.env.EMAILJS_PRIVATE_KEY
+        })
+        .then(
+            function (response) {
+                console.log('SUCCESS!', response.status, response.text);
+                res.status(200).send('Email sent successfully');
+            },
+            function (err) {
+                console.log('FAILED...', err);
+                res.status(500).send('Error sending email');
+            },
+        );
+})
 
 
 app.post('/schedule', async (req, res) => {
@@ -395,31 +427,31 @@ app.get('/schedule/:email/:date', async (req, res) => {
     const { email, date } = req.params;
     const startDate = new Date(date);
     const endDate = new Date(date);
-  
+
     // Ensure we cover the whole day from 00:00:00 to 23:59:59
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
-  
+
     try {
-      const events = await ScheduleEntry.find({
-        userEmail: email,
-        date: { $gte: startDate, $lte: endDate },
-        type: 'class'
-      });
-  
-      const tasks = await ScheduleEntry.find({
-        userEmail: email,
-        date: { $gte: startDate, $lte: endDate },
-        type: 'task'
-      });
-  
-      res.json({ events, tasks });
+        const events = await ScheduleEntry.find({
+            userEmail: email,
+            date: { $gte: startDate, $lte: endDate },
+            type: 'class'
+        });
+
+        const tasks = await ScheduleEntry.find({
+            userEmail: email,
+            date: { $gte: startDate, $lte: endDate },
+            type: 'task'
+        });
+
+        res.json({ events, tasks });
     } catch (error) {
-      console.error(error);
-      res.status(500).send('Error fetching schedule entries');
+        console.error(error);
+        res.status(500).send('Error fetching schedule entries');
     }
-  });
-  
+});
+
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);

@@ -1,0 +1,7 @@
+Flask
+pyttsx3
+python-dotenv
+langchain
+groq
+langchain_groq
+gunicorn

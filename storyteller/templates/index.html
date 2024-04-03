@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Story Generator</title>
+</head>
+<body>
+    <h1>Story Generator</h1>
+    <form method="post">
+        <input type="text" name="keyword" placeholder="Enter a keyword for your story (e.g., lion)">
+        <button type="submit">Generate Story</button>
+    </form>
+    {% if story %}
+        <p>{{ story }}</p>
+    {% endif %}
+</body>
+</html>

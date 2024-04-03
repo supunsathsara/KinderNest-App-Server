@@ -2,7 +2,7 @@
 v: 0
 micros:
   - name: backend
-    src: ./
+    src: ./backend/
     engine: nodejs16
     primary: true
     public_routes:
@@ -21,3 +21,15 @@ micros:
           default: "EMAIL_PASSWORD"
         - name: API_URL
           default: "API_URL"
+        - name: EMAILJS_PRIVATE_KEY
+          default: "EMAILJS_PRIVATE_KEY"
+  - name: storyteller
+    src: ./storyteller/
+    engine: python3.9
+    primary: false
+    path: story
+    run: gunicorn app:app
+    presets:
+      env:
+        - name: GROQ_API_KEY
+          default: "GROQ_API_KEY"
